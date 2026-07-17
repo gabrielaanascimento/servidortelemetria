@@ -1,6 +1,6 @@
 # Servidor de Telemetria 🚀
 
-Um servidor backend robusto para recepção, processamento e distribuição de dados de telemetria em tempo real. Projetado para integrar comunicação HTTP convencional com WebSockets, este servidor é ideal para aplicações de IoT (como integrações com **ESP32** e **Raspberry Pi**) e monitoramento contínuo para **dashboards veiculares**.
+Um servidor backend robusto para recepção, processamento e distribuição de dados de telemetria em tempo real. Projetado para integrar comunicação HTTP convencional com WebSockets, este servidor é ideal para aplicações de IoT (como integrações com **ESP32** ou **Raspberry Pi**) e monitoramento contínuo para **dashboards veiculares**.
 
 ## 🛠️ Tecnologias Utilizadas
 
