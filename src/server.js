@@ -1,10 +1,71 @@
 import WebSocket, { WebSocketServer } from 'ws'
 import env from 'dotenv'
 import { pool } from './dataBase/config.js'
+import express from 'express'
+import cors from 'cors'
+import bcrypt from 'bcrypt'
+import jwt from 'jsonwebtoken'
+import http from 'http'
 
 env.config()
 
-const wss = new WebSocketServer({ port: process.env.PORT || 8080 }, () => {
+const app = express()
+app.use(cors())
+app.use(express.json())
+
+const server = http.createServer(app)
+
+app.post('/register', async (req, res) => {
+    const { nome, email, senha } = req.body
+
+    if (!nome || !email || !senha) {
+        return res.status(400).json({ message: 'Nome, email e senha são obrigatórios.' })
+    }
+    try {
+        const hashedPassword = await bcrypt.hash(senha, 10)
+        const query = 'INSERT INTO usuarios (nome, email, senha) VALUES ($1, $2, $3) RETURNING id, nome, email'
+        const values = [nome, email, hashedPassword]
+        const result = await pool.query(query, values)
+        const newUser = result.rows[0]
+        return res.status(201).json({ message: 'Usuário registrado com sucesso.', user: newUser })
+    } catch (error) {
+        console.error('Error registering user:', error)
+        return res.status(500).json({ message: 'Error registering user.' })
+    }
+})
+
+app.post('/login', async (req, res) => {
+    const { email, senha } = req.body
+
+    if (!email || !senha) {
+        return res.status(400).json({ message: 'Email e senha são obrigatórios.' })
+    }
+
+    try {
+        const query = 'SELECT id, nome, email, senha FROM usuarios WHERE email = $1'
+        const values = [email]
+        const result = await pool.query(query, values)
+
+        if (result.rows.length === 0) {
+            return res.status(401).json({ message: 'Credenciais inválidas.' })
+        }
+
+        const user = result.rows[0]
+        const isMatch = await bcrypt.compare(senha, user.senha)
+
+        if (!isMatch) {
+            return res.status(401).json({ message: 'Credenciais inválidas.' })
+        }
+
+        const token = jwt.sign({ id: user.id, nome: user.nome, email: user.email }, process.env.JWT_SECRET, { expiresIn: '4h' })
+        return res.status(200).json({ message: 'Login realizado com sucesso.', token })
+    } catch (error) {
+        console.error('Error logging in:', error)
+        return res.status(500).json({ message: 'Error logging in.' })
+    }
+})
+
+const wss = new WebSocketServer({ server }, () => {
     console.log(`WebSocket server is running on port ${process.env.PORT || 8080}`)
 })
 
@@ -71,3 +132,7 @@ setInterval(async () => {
         }
     }
 }, 1000)
+
+server.listen(process.env.PORT || 8080, () => {
+    console.log(`Server is running on port ${process.env.PORT || 8080}`)
+})
