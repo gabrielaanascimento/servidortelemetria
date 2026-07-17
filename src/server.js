@@ -15,6 +15,10 @@ app.use(express.json())
 
 const server = http.createServer(app)
 
+app.get('/', (req, res) => {
+    res.send('Servidor rodando!')
+})
+
 app.post('/register', async (req, res) => {
     const { nome, email, senha } = req.body
 
