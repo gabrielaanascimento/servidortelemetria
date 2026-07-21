@@ -81,7 +81,6 @@ wss.on('connection', (ws) => {
     ws.on('message', (message) => {
         try {
             const data = JSON.parse(message)
-
             bufferTelemetria.push(data)
 
             wss.clients.forEach((client) => {
@@ -89,7 +88,6 @@ wss.on('connection', (ws) => {
                     client.send(JSON.stringify(data))
                 }
             })
-
         } catch (error) {
             console.error('Error processing message:', error)
         }
@@ -105,9 +103,9 @@ setInterval(async () => {
         const loteParaInserir = [...bufferTelemetria]
         bufferTelemetria = []
 
-
+        // Nomes exatos das colunas no banco (agora com altitude)
         const colunas = [
-            'voltage', 'current_eletronic', 'current_motor', 'pressure',
+            'voltage', 'current_eletronic', 'current_motor', 'pressure', 'altitude',
             'aceleration_x', 'aceleration_y', 'aceleration_z',
             'spin_x', 'spin_y', 'latitude', 'longitude', 'speed_kmh', 'temperature'
         ]
@@ -118,8 +116,27 @@ setInterval(async () => {
 
         loteParaInserir.forEach((item) => {
             const params = []
+
+            // De/para: chave do JSON da ESP -> coluna do BD
+            const dadosMapeados = {
+                voltage: item.voltageINA || 0,
+                current_eletronic: item.currentINA || 0,
+                current_motor: item.currentACS || 0,
+                pressure: item.pressure || 0,
+                altitude: item.altitude || 0,
+                aceleration_x: item.ax || 0,
+                aceleration_y: item.ay || 0,
+                aceleration_z: item.az || 0,
+                spin_x: item.gx || 0,
+                spin_y: item.gy || 0,
+                latitude: item.lat || 0,
+                longitude: item.lng || 0,
+                speed_kmh: item.speedKmh || 0,
+                temperature: 0.0
+            }
+
             colunas.forEach((coluna) => {
-                valores.push(item[coluna])
+                valores.push(dadosMapeados[coluna])
                 params.push(`$${index}`)
                 index++
             })
@@ -130,9 +147,9 @@ setInterval(async () => {
 
         try {
             await pool.query(query, valores)
-            console.log(`Inserting batch of ${loteParaInserir.length} telemetry records into the database`)
+            console.log(`Lote de ${loteParaInserir.length} registros inserido com sucesso!`)
         } catch (dbError) {
-            console.error('Database insert error:', dbError)
+            console.error('Erro no insert do banco:', dbError)
         }
     }
 }, 1000)
