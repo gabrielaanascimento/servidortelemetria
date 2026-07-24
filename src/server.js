@@ -1,3 +1,5 @@
+process.env.TZ = 'America/Sao_Paulo';
+
 import WebSocket, { WebSocketServer } from 'ws'
 import env from 'dotenv'
 import { pool } from './dataBase/config.js'
@@ -107,6 +109,7 @@ setInterval(async () => {
 
         // Nomes exatos das colunas no banco (agora com altitude)
         const colunas = [
+            'created_at',
             'voltage', 'current_eletronic', 'current_motor', 'pressure', 'altitude',
             'aceleration_x', 'aceleration_y', 'aceleration_z',
             'spin_x', 'spin_y', 'latitude', 'longitude', 'speed_kmh', 'temperature'
@@ -119,8 +122,11 @@ setInterval(async () => {
         loteParaInserir.forEach((item) => {
             const params = []
 
+            const dataHoraRecebimento = new Date().toLocaleString("sv-SE", { timeZone: "America/Sao_Paulo" });
+
             // De/para: chave do JSON da ESP -> coluna do BD
             const dadosMapeados = {
+                created_at: dataHoraRecebimento,
                 voltage: item.voltageINA || 0,
                 current_eletronic: item.currentINA || 0,
                 current_motor: item.currentACS || 0,
